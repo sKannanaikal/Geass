@@ -1,6 +1,6 @@
-all: infector
+all: geass
 
-infector: main.o
+geass: main.o
 	gcc main.o -o geass
 
 main.o: main.c
