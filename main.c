@@ -7,6 +7,7 @@
 #include <string.h>
 
 #define BUFFERSIZE 2048
+struct linux_dirent * directoryEntry;
 
 int alreadyInfected(){
 
@@ -15,7 +16,7 @@ int alreadyInfected(){
 
 int findFilesinDirectory(){
     int fd;
-    struct linux_dirent * directoryEntry;
+    
     int bytesRead;
 
     fd = open(".", O_RDONLY);
