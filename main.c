@@ -14,8 +14,20 @@ int checkifElf(Elf64_Ehdr elfHeader){
     return 1;
 }
 
+Elf64_Ehdr extractHeader(FILE *filePointer){
+    Elf64_Ehdr elfHeader;
+
+    filePointer = fopen("target", "rb");
+    if(filePointer == NULL){
+        return NULL;
+    }
+    fread(&elfHeader, sizeof(elfHeader), 1, filePointer);
+
+    return elfHeader;
+}
+
 void filesInDirectory(){
-    
+
 }
 
 int main(int argc, char *argv[]){
@@ -23,11 +35,7 @@ int main(int argc, char *argv[]){
     FILE *filePointer;
     int result;
 
-    filePointer = fopen("target", "rb");
-    if(filePointer == NULL){
-        return 1;
-    }
-    fread(&elfHeader, sizeof(elfHeader), 1, filePointer);
+    elfHeader = extractHeader(filePointer);
 
     unsigned int entryPoint = elfHeader.e_entry;
 
